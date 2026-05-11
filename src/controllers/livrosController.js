@@ -1,4 +1,5 @@
 import livros from "../models/Livro.js";
+import autores from "../models/Autor.js";
 
 class LivroController {
 
@@ -24,7 +25,7 @@ class LivroController {
 
       res.status(200).send(livroResultados);
     } catch (erro) {
-      res.status(400).send({message: `${erro.message} - Id do livro não localizado.`});
+      res.status(400).send({ message: `${erro.message} - Id do livro não localizado.` });
     }
   }
 
@@ -36,7 +37,7 @@ class LivroController {
 
       res.status(201).send(livroResultado.toJSON());
     } catch (erro) {
-      res.status(500).send({message: `${erro.message} - falha ao cadastrar livro.`});
+      res.status(500).send({ message: `${erro.message} - falha ao cadastrar livro.` });
     }
   }
 
@@ -44,11 +45,11 @@ class LivroController {
     try {
       const id = req.params.id;
 
-      await livros.findByIdAndUpdate(id, {$set: req.body});
+      await livros.findByIdAndUpdate(id, { $set: req.body });
 
-      res.status(200).send({message: "Livro atualizado com sucesso"});
+      res.status(200).send({ message: "Livro atualizado com sucesso" });
     } catch (erro) {
-      res.status(500).send({message: erro.message});
+      res.status(500).send({ message: erro.message });
     }
   }
 
@@ -58,19 +59,22 @@ class LivroController {
 
       await livros.findByIdAndDelete(id);
 
-      res.status(200).send({message: "Livro removido com sucesso"});
+      res.status(200).send({ message: "Livro removido com sucesso" });
     } catch (erro) {
-      res.status(500).send({message: erro.message});
+      res.status(500).send({ message: erro.message });
     }
   }
 
-  static listarLivroPorEditora = async (req, res) => {
+  static listarLivroPorFiltro = async (req, res) => {
     try {
-      const editora = req.query.editora;
+      const busca = await searchLoading(req.query)
 
-      const livrosResultado = await livros.find({"editora": editora});
+      const livrosResultado = await livros
+        .find(busca)
+        .populate("autor")
 
       res.status(200).send(livrosResultado);
+      console.log(busca)
     } catch (erro) {
       res.status(500).json({ message: "Erro interno no servidor" });
     }
@@ -78,6 +82,26 @@ class LivroController {
 
 
 
+}
+
+async function searchLoading(param) {
+  const { editora, titulo, minPaginas, maxPaginas, nomeAutor } = param;
+  const busca = {}
+
+  if (editora) busca.editora = editora;
+  if (titulo) busca.titulo = { $regex: titulo, $options: "i" }
+  if (minPaginas || maxPaginas) busca.paginas = {}
+
+  if (minPaginas) busca.paginas.$gte = Number(minPaginas)
+  if (maxPaginas) busca.paginas.$lte = Number(maxPaginas)
+
+  if (nomeAutor) {
+    const autor = await autores.findOne({ nome: nomeAutor });
+    const idAutor = autor._id
+    busca.autor = idAutor
+  }
+
+  return busca
 }
 
 export default LivroController
