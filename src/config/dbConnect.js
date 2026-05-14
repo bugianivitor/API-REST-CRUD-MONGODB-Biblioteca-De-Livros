@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 
-mongoose.connect("mongodb+srv://admin:admin123@cluster0.bb5q8lo.mongodb.net/livraria?appName=Cluster0");
+mongoose.connect(process.env.DB_CONNECTION_STRING);
 
 let db = mongoose.connection;
 
