@@ -3,13 +3,11 @@ import autores from "../models/Autor.js";
 
 class LivroController {
 
-  static listarLivros = async (req, res) => {
+  static listarLivros = async (req, res, next) => {
     try {
-      const livrosResultado = await livros.find()
-        .populate("autor")
-        .exec();
-
-      res.status(200).json(livrosResultado);
+      const buscaLivros = livros.find()
+      req.resultado = buscaLivros
+      next()
     } catch (erro) {
       res.status(500).json({ message: "Erro interno no servidor" });
     }
@@ -20,7 +18,6 @@ class LivroController {
       const id = req.params.id;
 
       const livroResultados = await livros.findById(id)
-        .populate("autor", "nome")
         .exec();
 
       res.status(200).send(livroResultados);
@@ -65,16 +62,19 @@ class LivroController {
     }
   }
 
-  static listarLivroPorFiltro = async (req, res) => {
+  static listarLivroPorFiltro = async (req, res, next) => {
     try {
       const busca = await searchLoading(req.query)
 
-      const livrosResultado = await livros
-        .find(busca)
-        .populate("autor")
+      if (busca !== null) {
+        const livrosResultado = livros.find(busca)
 
-      res.status(200).send(livrosResultado);
-      console.log(busca)
+        req.resultado = livrosResultado
+
+        next()
+      } else {
+        res.status(200).send([])
+      }
     } catch (erro) {
       res.status(500).json({ message: "Erro interno no servidor" });
     }
@@ -97,8 +97,12 @@ async function searchLoading(param) {
 
   if (nomeAutor) {
     const autor = await autores.findOne({ nome: nomeAutor });
-    const idAutor = autor._id
-    busca.autor = idAutor
+
+    if (autor !== null) {
+      busca.autor = autor._id
+    } else {
+      busca = null
+    }
   }
 
   return busca
